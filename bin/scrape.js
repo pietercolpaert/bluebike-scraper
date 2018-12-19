@@ -6,14 +6,15 @@ const haversine = require('haversine');
 let rate = 1;
 let scrape_bluebike = scrapeBluebike("https://www.blue-bike.be/nl/zoek-een-blue-bike-punt", rate);
 
+//Context for the JSON-LD of iRail -- Caveat: contains
 var context = {
   "mv": "http://schema.mobivoc.org/",
   "name": { "@id": "http://xmlns.com/foaf/0.1/name",
             "@type":"http://www.w3.org/2001/XMLSchema#string"},
   "longitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#long",
-                "@type":"http://www.w3.org/2001/XMLSchema#floaf"},
+                "@type":"http://www.w3.org/2001/XMLSchema#string"},
   "latitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#lat",
-               "@type":"http://www.w3.org/2001/XMLSchema#float"},
+               "@type":"http://www.w3.org/2001/XMLSchema#string"},
   "alternative": {"@id": "http://purl.org/dc/terms/alternative",
                   "@type":"http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
                   "@container":"@set"
@@ -44,6 +45,7 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
           longitude: data.lon,
           latitude: data.lat
         };
+        
         let distance = haversine(start, station);
         if (minDist > distance) { 
           minDist = distance;
@@ -60,6 +62,8 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
 
     var contextOut = context;
     contextOut.xsd = "http://www.w3.org/2001/XMLSchema#";
+    contextOut.longitude["@type"] = "xsd:float";
+    contextOut.latitude["@type"] = "xsd:float";
     contextOut.features = "@graph";
     contextOut.properties = "@graph";
     contextOut.generatedAtTime = {
