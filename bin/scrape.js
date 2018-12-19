@@ -1,7 +1,7 @@
 #!/usr/bin/env nodejs
 const scrapeBluebike = require('../lib/scraper').scrapeBluebike;
 const ldfetch = new (require('ldfetch'))({headers: { accept : 'application/ld+json' }});
-
+const haversine = require('haversine');
 
 let rate = 1;
 let scrape_bluebike = scrapeBluebike("https://www.blue-bike.be/nl/zoek-een-blue-bike-punt", rate);
@@ -10,9 +10,9 @@ var context = {
   "name": { "@id": "http://xmlns.com/foaf/0.1/name",
             "@type":"http://www.w3.org/2001/XMLSchema#string"},
   "longitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#long",
-                "@type":"http://www.w3.org/2001/XMLSchema#string"},
+                "@type":"http://www.w3.org/2001/XMLSchema#floaf"},
   "latitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#lat",
-               "@type":"http://www.w3.org/2001/XMLSchema#string"},
+               "@type":"http://www.w3.org/2001/XMLSchema#float"},
   "alternative": {"@id": "http://purl.org/dc/terms/alternative",
                   "@type":"http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
                   "@container":"@set"
@@ -36,9 +36,16 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
         }, 100)
       })];
 
-      //reconciliation of nearby stations
+      //reconciliation of nearby stations: there should be 1 station the nearest.
+      let minDist = Infinity;
       for (let station of stations) {
-        if ((station.name && station.name === data.name ) || (station.alternative && station.alternative.indexOf(data.name) > -1  )) {
+        let start = {
+          longitude: data.lon,
+          latitude: data.lat
+        };
+        let distance = haversine(start, station);
+        if (minDist > distance) { 
+          minDist = distance;
           data.nearby = station;
         }
       }
@@ -58,7 +65,10 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
       "@id": "http://www.w3.org/ns/prov#generatedAtTime",
       "@type": "xsd:date"
     };
-    contextOut.nearby = "http://www.geonames.org/ontology#nearby";
+    contextOut.nearby = {
+      "@id": "http://www.geonames.org/ontology#nearby",
+      "@type": "@id"
+    };
     
     var geoJsonLdObject = {
       "@context": contextOut,
@@ -76,7 +86,7 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
       }
       object.generatedAtTime = (new Date()).toISOString();
       object.properties = {
-        "@id": "http://irail.be/stations/bluebike/" + data.name,
+        "@id": "http://irail.be/stations/bluebike/" + encodeURIComponent(data.name),
         "@type": "http://schema.org/ParkingFacility",
         "name": data.name,
         "longitude": data.lon,
@@ -86,7 +96,7 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
         'docks_available': data.docks_available
       }
       if (data.nearby)
-        object.properties.nearby = data.nearby;
+        object.properties.nearby = data.nearby["@id"];
       
       geoJsonLdObject.features.push(object);
     });

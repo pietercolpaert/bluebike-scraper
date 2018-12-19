@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "asynciterator": "^2.0.0",
+    "haversine": "^1.1.0",
     "htmlparser2": "^3.10.0",
     "ldfetch": "^1.1.1-alpha",
     "request-promise-native": "^1.0.5"
