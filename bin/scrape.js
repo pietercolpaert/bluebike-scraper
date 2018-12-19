@@ -7,6 +7,7 @@ let rate = 1;
 let scrape_bluebike = scrapeBluebike("https://www.blue-bike.be/nl/zoek-een-blue-bike-punt", rate);
 
 var context = {
+  "mv": "http://schema.mobivoc.org/",
   "name": { "@id": "http://xmlns.com/foaf/0.1/name",
             "@type":"http://www.w3.org/2001/XMLSchema#string"},
   "longitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#long",
@@ -68,6 +69,15 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
     contextOut.nearby = {
       "@id": "http://www.geonames.org/ontology#nearby",
       "@type": "@id"
+    };
+    contextOut.bikes_available = {
+      "@id":"mv:capacity",
+      "@type":"http://www.w3.org/2001/XMLSchema#integer"      
+    };
+
+    contextOut.capacity = {
+      "@id": "mv:totalCapacity",
+      "@type":"http://www.w3.org/2001/XMLSchema#integer"
     };
     
     var geoJsonLdObject = {
