@@ -12,9 +12,9 @@ var context = {
   "name": { "@id": "http://xmlns.com/foaf/0.1/name",
             "@type":"http://www.w3.org/2001/XMLSchema#string"},
   "longitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#long",
-                "@type":"http://www.w3.org/2001/XMLSchema#string"},
+                "@type":"http://www.w3.org/2001/XMLSchema#float"},
   "latitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#lat",
-               "@type":"http://www.w3.org/2001/XMLSchema#string"},
+               "@type":"http://www.w3.org/2001/XMLSchema#float"},
   "alternative": {"@id": "http://purl.org/dc/terms/alternative",
                   "@type":"http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
                   "@container":"@set"
