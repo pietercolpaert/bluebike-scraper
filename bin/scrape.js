@@ -29,15 +29,9 @@ var context = {
                  }
 };
 
-console.error('Fetching ' + 'https://irail.be/stations/NMBS/');
-ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
-  
-  return ldfetch.frame(response.triples,
-                       { "@context": context }).then( (json) => json["@graph"]);
-}).then(stations => {
-  scrapedBluebikes.nl.then((it) => {
-    // First slow it down to a pace of 100ms per HTTP request
-    // Then also check for iRail stations nearby
+const generateInitialObj = (it, stations) => new Promise((upperResolve) => {
+  // First slow it down to a pace of 100ms per HTTP request
+  // Then also check for iRail stations nearby
     
     let slowIt = it.transform((data, done) => {
       var promises = [new Promise((resolve) => {
@@ -123,10 +117,25 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
       geoJsonLdObject.features.push(object);
     });
 
-    slowIt.on('end',() => {
-      console.log(JSON.stringify(geoJsonLdObject));
-    });
+    slowIt.on('end', () => upperResolve(geoJsonLdObject));
+});
 
-  });
+console.error('Fetching ' + 'https://irail.be/stations/NMBS/');
+ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
+  
+  return ldfetch.frame(response.triples,
+                       { "@context": context }).then( (json) => json["@graph"]);
+}).then(stations => {
+  scrapedBluebikes.nl
+    .then((it) => {
+      return generateInitialObj(it, stations);
+    })
+    .then((geoJsonLdObject) => {
+      if (!FULL_RUN) {
+        console.log(JSON.stringify(geoJsonLdObject));
+        process.exit();
+      }
+      return 'end';
+    });
 });
 
