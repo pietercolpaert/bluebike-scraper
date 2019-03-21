@@ -3,8 +3,16 @@ const scrapeBluebike = require('../lib/scraper').scrapeBluebike;
 const ldfetch = new (require('ldfetch'))({headers: { accept : 'application/ld+json' }});
 const haversine = require('haversine');
 
+const FULL_RUN = process.argv[2] === '--full';
 let rate = 1;
-let scrape_bluebike = scrapeBluebike("https://www.blue-bike.be/nl/zoek-een-blue-bike-punt", rate);
+const scrapedBluebikes = {
+  nl: scrapeBluebike('https://www.blue-bike.be/nl/zoek-een-blue-bike-punt', rate)
+};
+
+if (FULL_RUN) {
+  scrapedBluebikes.fr = scrapeBluebike('https://www.blue-bike.be/fr/cherchez-blue-bike-point', rate);
+  scrapedBluebikes.en = scrapeBluebike('https://www.blue-bike.be/en/find-blue-bike-location', rate);
+}
 
 //Context for the JSON-LD of iRail -- Caveat: contains
 var context = {
@@ -27,7 +35,7 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
   return ldfetch.frame(response.triples,
                        { "@context": context }).then( (json) => json["@graph"]);
 }).then(stations => {
-  scrape_bluebike.then((it) => {
+  scrapedBluebikes.nl.then((it) => {
     // First slow it down to a pace of 100ms per HTTP request
     // Then also check for iRail stations nearby
     
