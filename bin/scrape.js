@@ -125,17 +125,13 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
   
   return ldfetch.frame(response.triples,
                        { "@context": context }).then( (json) => json["@graph"]);
-}).then(stations => {
-  scrapedBluebikes.nl
-    .then((it) => {
-      return generateInitialObj(it, stations);
-    })
-    .then((geoJsonLdObject) => {
-      if (!FULL_RUN) {
-        console.log(JSON.stringify(geoJsonLdObject));
-        process.exit();
-      }
-      return 'end';
-    });
+}).then(async stations => {
+  const it = await scrapedBluebikes.nl;
+  const geoJsonLdObject = await generateInitialObj(it, stations);
+  
+  if (!FULL_RUN) {
+    console.log(JSON.stringify(geoJsonLdObject));
+    process.exit();
+  }
 });
 
