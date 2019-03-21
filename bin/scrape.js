@@ -100,7 +100,7 @@ ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
       }
       object.generatedAtTime = (new Date()).toISOString();
       object.properties = {
-        "@id": "http://irail.be/stations/bluebike/" + encodeURIComponent(data.name),
+        "@id": "http://irail.be/stations/bluebike/" + encodeURIComponent(data.name.replace(' ','')),
         "@type": "http://schema.org/ParkingFacility",
         "name": data.name,
         "longitude": data.lon,
