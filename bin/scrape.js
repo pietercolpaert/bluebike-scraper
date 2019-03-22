@@ -3,13 +3,14 @@ const scrapeBluebike = require('../lib/scraper').scrapeBluebike;
 const ldfetch = new (require('ldfetch'))({headers: { accept : 'application/ld+json' }});
 const haversine = require('haversine');
 
-const FULL_RUN = process.argv[2] === '--full';
+const IS_FULL_RUN = process.argv[2] === '--full';
 let rate = 1;
+
 const scrapedBluebikes = {
   nl: scrapeBluebike('https://www.blue-bike.be/nl/zoek-een-blue-bike-punt', rate)
 };
 
-if (FULL_RUN) {
+if (IS_FULL_RUN) {
   scrapedBluebikes.fr = scrapeBluebike('https://www.blue-bike.be/fr/cherchez-blue-bike-point', rate);
   scrapedBluebikes.en = scrapeBluebike('https://www.blue-bike.be/en/find-blue-bike-location', rate);
 }
@@ -29,7 +30,7 @@ var context = {
                  }
 };
 
-const generateInitialObj = (it, stations) => new Promise((upperResolve) => {
+const generateGeoJsonLdObject = (stations, ...iterators) => new Promise((upperResolve) => {
   // First slow it down to a pace of 100ms per HTTP request
   // Then also check for iRail stations nearby
     
@@ -109,7 +110,19 @@ const generateInitialObj = (it, stations) => new Promise((upperResolve) => {
         "latitude": data.lat,
         'bikes_available': data.bikes_available,
         'capacity': data.capacity,
-        'docks_available': data.docks_available
+        'docks_available': data.docks_available,
+        'location': [
+          {
+            '@lang': 'nl',
+            '@value': data.route_description
+          }
+        ],
+        'address': [
+          {
+            '@lang': 'nl',
+            '@value': data.address
+          }
+        ]
       }
       if (data.nearby)
         object.properties.nearby = data.nearby["@id"];
@@ -121,17 +134,16 @@ const generateInitialObj = (it, stations) => new Promise((upperResolve) => {
 });
 
 console.error('Fetching ' + 'https://irail.be/stations/NMBS/');
-ldfetch.get('https://irail.be/stations/NMBS/').then((response) => {
-  
-  return ldfetch.frame(response.triples,
-                       { "@context": context }).then( (json) => json["@graph"]);
-}).then(async stations => {
-  const it = await scrapedBluebikes.nl;
-  const geoJsonLdObject = await generateInitialObj(it, stations);
-  
-  if (!FULL_RUN) {
+ldfetch.get('https://irail.be/stations/NMBS/')
+  .then((response) => {
+    return ldfetch.frame(response.triples, { "@context": context }).then(json => json["@graph"]);
+  })
+  .then(async stations => {
+    const it = await scrapedBluebikes.nl;
+    const geoJsonLdObject = await generateGeoJsonLdObject(it, stations);
+    
+    const itFrench = await scrapedBluebikes.fr;
+    const itEnglish = await scrapedBluebikes.en;
     console.log(JSON.stringify(geoJsonLdObject));
-    process.exit();
-  }
-});
+  });
 
