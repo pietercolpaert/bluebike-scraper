@@ -1,6 +1,6 @@
 #!/usr/bin/env nodejs
 const scrapeBluebike = require('../lib/scraper').scrapeBluebike;
-const ldfetch = new (require('ldfetch'))({headers: { accept : 'application/ld+json' }});
+const ldfetch = new (require('ldfetch'))({ headers: { accept: 'application/ld+json' } });
 const haversine = require('haversine');
 
 const IS_FULL_RUN = process.argv[2] === '--full';
@@ -18,16 +18,23 @@ if (IS_FULL_RUN) {
 //Context for the JSON-LD of iRail -- Caveat: contains
 var context = {
   "mv": "http://schema.mobivoc.org/",
-  "name": { "@id": "http://xmlns.com/foaf/0.1/name",
-            "@type":"http://www.w3.org/2001/XMLSchema#string"},
-  "longitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#long",
-                "@type":"http://www.w3.org/2001/XMLSchema#float"},
-  "latitude": {"@id":"http://www.w3.org/2003/01/geo/wgs84_pos#lat",
-               "@type":"http://www.w3.org/2001/XMLSchema#float"},
-  "alternative": {"@id": "http://purl.org/dc/terms/alternative",
-                  "@type":"http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
-                  "@container":"@set"
-                 }
+  "name": {
+    "@id": "http://xmlns.com/foaf/0.1/name",
+    "@type": "http://www.w3.org/2001/XMLSchema#string"
+  },
+  "longitude": {
+    "@id": "http://www.w3.org/2003/01/geo/wgs84_pos#long",
+    "@type": "http://www.w3.org/2001/XMLSchema#float"
+  },
+  "latitude": {
+    "@id": "http://www.w3.org/2003/01/geo/wgs84_pos#lat",
+    "@type": "http://www.w3.org/2001/XMLSchema#float"
+  },
+  "alternative": {
+    "@id": "http://purl.org/dc/terms/alternative",
+    "@type": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
+    "@container": "@set"
+  }
 };
 
 const generateInitialObj = (stations, iterator) => new Promise(async (upperResolve) => {
@@ -46,13 +53,13 @@ const generateInitialObj = (stations, iterator) => new Promise(async (upperResol
     "@type": "@id"
   };
   contextOut.bikes_available = {
-    "@id":"mv:capacity",
-    "@type":"http://www.w3.org/2001/XMLSchema#integer"      
+    "@id": "mv:capacity",
+    "@type": "http://www.w3.org/2001/XMLSchema#integer"
   };
 
   contextOut.capacity = {
     "@id": "mv:totalCapacity",
-    "@type":"http://www.w3.org/2001/XMLSchema#integer"
+    "@type": "http://www.w3.org/2001/XMLSchema#integer"
   };
 
   const geoJsonLdObject = {
@@ -75,19 +82,19 @@ const generateInitialObj = (stations, iterator) => new Promise(async (upperResol
         longitude: data.lon,
         latitude: data.lat
       };
-      
+
       let distance = haversine(start, station);
-      if (minDist > distance) { 
+      if (minDist > distance) {
         minDist = distance;
         data.nearby = station;
       }
     }
-    
+
     slowIt._push(data);
-    
+
     Promise.all(promises).then(done);
   });
-  
+
   slowIt.each((data) => {
     //geojson-ify data
     let object = {};
@@ -105,12 +112,17 @@ const generateInitialObj = (stations, iterator) => new Promise(async (upperResol
       "latitude": data.lat,
       'bikes_available': data.bikes_available,
       'capacity': data.capacity,
-      'docks_available': data.docks_available,
-      'location': [{
+      'docks_available': data.docks_available
+    }
+
+    if (data.route_description) {
+      object.properties.location = [{
         '@lang': 'nl',
         '@value': data.route_description
-      }],
-      'address': [{
+      }]
+    }
+    if (data.address) {
+      object.properties.address = [{
         '@lang': 'nl',
         '@value': data.address
       }]
@@ -133,14 +145,18 @@ const addLocationToGeoJson = (iterator, lang) => new Promise((resolve) => {
       feature.properties.latitude === data.lat && feature.properties.longitude === data.lon
     ));
     if (featureIndex !== -1) {
-      geoJsonLdObject.features[featureIndex].properties.location.push({
-        '@lang': lang,
-        '@value': data.route_description
-      });
-      geoJsonLdObject.features[featureIndex].properties.address.push({
-        '@lang': lang,
-        '@value': data.address
-      });
+      if (data.route_description) {
+        geoJsonLdObject.features[featureIndex].properties.location.push({
+          '@lang': lang,
+          '@value': data.route_description
+        });
+      }
+      if (data.address) {
+        geoJsonLdObject.features[featureIndex].properties.address.push({
+          '@lang': lang,
+          '@value': data.address
+        });
+      }
     }
   });
   iterator.on('end', () => { resolve(); });
