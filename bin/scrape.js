@@ -3,7 +3,7 @@ const scrapeBluebike = require('../lib/scraper').scrapeBluebike;
 const ldfetch = new (require('ldfetch'))({ headers: { accept: 'application/ld+json' } });
 const haversine = require('haversine');
 
-const IS_FULL_RUN = process.argv[2] === '--full';
+const IS_FULL_RUN = process.argv[2] === '--lang';
 let rate = 1;
 
 const scrapedBluebikes = {
@@ -104,24 +104,29 @@ const generateInitialObj = (stations, iterator) => new Promise(async (upperResol
       "coordinates": [data.lon, data.lat],
     }
     object.generatedAtTime = (new Date()).toISOString();
+
     object.properties = {
-      "@id": "http://irail.be/stations/bluebike/" + encodeURIComponent(data.name.replace(' ','')),
+      "@id": "http://irail.be/stations/bluebike/" + encodeURIComponent(data.name.replace(' ', '')),
       "@type": "http://schema.org/ParkingFacility",
       "name": data.name,
       "longitude": data.lon,
-      "latitude": data.lat,
-      'bikes_available': data.bikes_available,
-      'capacity': data.capacity,
-      'docks_available': data.docks_available
+      "latitude": data.lat
     }
 
-    if (data.route_description) {
+    if (!IS_FULL_RUN) {
+      object.properties.latitude = data.lat;
+      object.properties.bikes_available = data.bikes_available;
+      object.properties.capacity = data.capacity;
+      object.properties.docks_available = data.docks_available;
+    }
+
+    if (IS_FULL_RUN && data.route_description) {
       object.properties.location = [{
         '@lang': 'nl',
         '@value': data.route_description
       }]
     }
-    if (data.address) {
+    if (IS_FULL_RUN && data.address) {
       object.properties.address = [{
         '@lang': 'nl',
         '@value': data.address
@@ -144,7 +149,8 @@ const addLocationToGeoJson = (iterator, lang) => new Promise((resolve) => {
     const featureIndex = geoJsonLdObject.features.findIndex(feature => (
       feature.properties.latitude === data.lat && feature.properties.longitude === data.lon
     ));
-    if (featureIndex !== -1) {
+    if (IS_FULL_RUN && featureIndex !== -1) {
+      if (!geoJsonLdObject.features[featureIndex].properties.location) geoJsonLdObject.features[featureIndex].properties.location = [];
       if (data.route_description) {
         geoJsonLdObject.features[featureIndex].properties.location.push({
           '@lang': lang,
@@ -152,6 +158,7 @@ const addLocationToGeoJson = (iterator, lang) => new Promise((resolve) => {
         });
       }
       if (data.address) {
+        if (!geoJsonLdObject.features[featureIndex].properties.address) geoJsonLdObject.features[featureIndex].properties.address = [];
         geoJsonLdObject.features[featureIndex].properties.address.push({
           '@lang': lang,
           '@value': data.address
