@@ -14,3 +14,9 @@ Use it:
 npm install # you’ll need node >=10 installed
 ./bin/scrape.js > yourfile.geojson
 ```
+
+To perform a full running, adding a route description and address in Dutch, French and English, add the `--full` flag:  
+```
+./bin/scrape.js --full > yourfile.geojson
+```
+As routes and addresses barely change, it is not necessary to run this often.
